@@ -75,6 +75,10 @@ export default function Home() {
         setIsPlaying(false)
         setManuallyPaused(true)
       } else {
+        // Set start time to 1:26 (86 seconds) if at beginning
+        if (audioRef.current.currentTime === 0) {
+          audioRef.current.currentTime = 86
+        }
         audioRef.current.play()
         setIsPlaying(true)
         setManuallyPaused(false)
@@ -86,6 +90,8 @@ export default function Home() {
   useEffect(() => {
     const handleFirstInteraction = () => {
       if (audioRef.current && !isPlaying && !manuallyPaused) {
+        // Set start time to 1:26 (86 seconds)
+        audioRef.current.currentTime = 86
         audioRef.current.play()
           .then(() => {
             setIsPlaying(true)
@@ -616,7 +622,7 @@ export default function Home() {
 
         {/* Audio Element */}
         <audio ref={audioRef} loop>
-          <source src="/audio/background-music.mp3" type="audio/mpeg" />
+          <source src="/audio/ayaulym.mp3" type="audio/mpeg" />
         </audio>
       </div>
     </main>
