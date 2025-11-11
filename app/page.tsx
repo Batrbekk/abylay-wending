@@ -465,7 +465,7 @@ export default function Home() {
             Той иелері:
           </p>
           <p className="text-4xl md:text-5xl" style={{ color: '#654321', fontFamily: 'Great Vibes, cursive' }}>
-            Толеген-Маххабат
+            Толеген-Махаббат
           </p>
           <Image src="/images/oyu-m.webp" alt="ornament" width={350} height={96} />
         </div>
