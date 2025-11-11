@@ -13,8 +13,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Азат & Әсем - Wedding Invitation",
-  description: "You are cordially invited to celebrate the wedding of Азат and Әсем",
+  title: "Абылайхан & Дильназ - Үйлену тойына шақыру",
+  description: "Сіз(дер)ді ұлымыз бен келініміз Абылайхан мен Дильназдың үйлену тойына арналған ақ дастарханымыздың қадірлі қонағы болуға шақырамыз! 13.12.2025 жыл, сағат 15:00, Ресторан Туран, Екібастұз қаласы",
+  keywords: "үйлену тойы, той, шақыру, Абылайхан, Дильназ, wedding, invitation",
+  authors: [{ name: "Толеген-Маххабат" }],
+  openGraph: {
+    title: "Абылайхан & Дильназ - Үйлену тойына шақыру",
+    description: "Сіз(дер)ді ұлымыз бен келініміз Абылайхан мен Дильназдың үйлену тойына арналған ақ дастарханымыздың қадірлі қонағы болуға шақырамыз!",
+    type: "website",
+    locale: "kk_KZ",
+    siteName: "Абылайхан & Дильназ Wedding",
+  },
 };
 
 export default function RootLayout({

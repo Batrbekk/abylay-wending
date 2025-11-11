@@ -2,10 +2,13 @@
 
 import Image from "next/image"
 import { useRef, useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function Home() {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [manuallyPaused, setManuallyPaused] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Countdown timer state
   const [timeLeft, setTimeLeft] = useState({
@@ -48,22 +51,41 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [])
 
+  // Preloader effect with scroll lock
+  useEffect(() => {
+    // Lock scroll during loading
+    document.body.style.overflow = 'hidden'
+
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+      // Unlock scroll after loading
+      document.body.style.overflow = 'unset'
+    }, 2000)
+
+    return () => {
+      clearTimeout(timer)
+      document.body.style.overflow = 'unset'
+    }
+  }, [])
+
   const togglePlay = () => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause()
         setIsPlaying(false)
+        setManuallyPaused(true)
       } else {
         audioRef.current.play()
         setIsPlaying(true)
+        setManuallyPaused(false)
       }
     }
   }
 
-  // Auto-play on first user interaction
+  // Auto-play on first user interaction (only if not manually paused)
   useEffect(() => {
     const handleFirstInteraction = () => {
-      if (audioRef.current && !isPlaying) {
+      if (audioRef.current && !isPlaying && !manuallyPaused) {
         audioRef.current.play()
           .then(() => {
             setIsPlaying(true)
@@ -87,7 +109,7 @@ export default function Home() {
       document.removeEventListener('scroll', handleFirstInteraction)
       document.removeEventListener('click', handleFirstInteraction)
     }
-  }, [isPlaying])
+  }, [isPlaying, manuallyPaused])
 
   const handleSubmitRSVP = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -113,14 +135,46 @@ export default function Home() {
         setFormStatus('error')
         setFormMessage(data.error || 'Қате орын алды')
       }
-    } catch (error) {
+    } catch {
       setFormStatus('error')
       setFormMessage('Қате орын алды. Қайталап көріңіз.')
     }
   }
 
   return (
-    <main className="w-full min-h-screen relative overflow-x-hidden">
+    <>
+      {/* Preloader with Framer Motion */}
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#faf9f6]"
+          >
+            <div className="flex flex-col items-center gap-6">
+              <div className="relative">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="w-32 h-32 border-8 border-[#f5e6d3] rounded-full border-t-[#d4a574]"
+                />
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 flex items-center justify-center"
+                >
+                  <Image src="/images/heart-icon.webp" alt="Loading" width={60} height={60} />
+                </motion.div>
+              </div>
+              <p className="text-2xl text-[#654321]" style={{ fontFamily: 'Great Vibes, cursive' }}>
+                Абылайхан & Дильназ
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <main className="w-full min-h-screen relative overflow-x-hidden">
       <div className="w-full h-[650px] relative">
         <Image
           src="/images/IMG_5437.JPG"
@@ -566,5 +620,6 @@ export default function Home() {
         </audio>
       </div>
     </main>
+    </>
   )
 }
