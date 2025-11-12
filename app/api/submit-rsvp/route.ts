@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
-import fs from 'fs'
-import path from 'path'
+import { sql } from '@vercel/postgres'
 
 const EMAIL_USER = "batrbekk@gmail.com"
 const EMAIL_PASS = "yoja sxoy hrbq prae"
@@ -13,30 +12,45 @@ interface Guest {
   timestamp: string
 }
 
-const GUESTS_FILE = path.join(process.cwd(), 'data', 'guests.json')
-
-// Ensure data directory exists
-function ensureDataDirectory() {
-  const dataDir = path.join(process.cwd(), 'data')
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true })
+// Initialize database table
+async function initDatabase() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS guests (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        attendance VARCHAR(50) NOT NULL,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+  } catch (error) {
+    console.error('Database init error:', error)
   }
 }
 
-// Read guests from file
-function readGuests(): Guest[] {
-  ensureDataDirectory()
-  if (!fs.existsSync(GUESTS_FILE)) {
+// Read guests from database
+async function readGuests(): Promise<Guest[]> {
+  try {
+    await initDatabase()
+    const { rows } = await sql`SELECT name, attendance, timestamp FROM guests ORDER BY timestamp DESC`
+    return rows.map(row => ({
+      name: row.name,
+      attendance: row.attendance,
+      timestamp: new Date(row.timestamp).toISOString()
+    }))
+  } catch (error) {
+    console.error('Read guests error:', error)
     return []
   }
-  const data = fs.readFileSync(GUESTS_FILE, 'utf-8')
-  return JSON.parse(data)
 }
 
-// Write guests to file
-function writeGuests(guests: Guest[]) {
-  ensureDataDirectory()
-  fs.writeFileSync(GUESTS_FILE, JSON.stringify(guests, null, 2))
+// Write guest to database
+async function writeGuest(guest: { name: string; attendance: string }) {
+  await initDatabase()
+  await sql`
+    INSERT INTO guests (name, attendance)
+    VALUES (${guest.name}, ${guest.attendance})
+  `
 }
 
 export async function POST(request: Request) {
@@ -58,15 +72,14 @@ export async function POST(request: Request) {
       )
     }
 
-    // Add new guest to the list
-    const guests = readGuests()
-    const newGuest: Guest = {
+    // Add new guest to the database
+    await writeGuest({
       name: name.trim(),
-      attendance,
-      timestamp: new Date().toISOString()
-    }
-    guests.push(newGuest)
-    writeGuests(guests)
+      attendance
+    })
+
+    // Get all guests for email
+    const guests = await readGuests()
 
     // Create email transporter
     const transporter = nodemailer.createTransport({
