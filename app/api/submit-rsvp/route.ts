@@ -1,57 +1,10 @@
 import { NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
-import { sql } from '@vercel/postgres'
+import { prisma } from '@/lib/prisma'
 
 const EMAIL_USER = "batrbekk@gmail.com"
 const EMAIL_PASS = "yoja sxoy hrbq prae"
 const RECIPIENT_EMAIL = "uabylaykhan@mail.ru"
-
-interface Guest {
-  name: string
-  attendance: string
-  timestamp: string
-}
-
-// Initialize database table
-async function initDatabase() {
-  try {
-    await sql`
-      CREATE TABLE IF NOT EXISTS guests (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        attendance VARCHAR(50) NOT NULL,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `
-  } catch (error) {
-    console.error('Database init error:', error)
-  }
-}
-
-// Read guests from database
-async function readGuests(): Promise<Guest[]> {
-  try {
-    await initDatabase()
-    const { rows } = await sql`SELECT name, attendance, timestamp FROM guests ORDER BY timestamp DESC`
-    return rows.map(row => ({
-      name: row.name,
-      attendance: row.attendance,
-      timestamp: new Date(row.timestamp).toISOString()
-    }))
-  } catch (error) {
-    console.error('Read guests error:', error)
-    return []
-  }
-}
-
-// Write guest to database
-async function writeGuest(guest: { name: string; attendance: string }) {
-  await initDatabase()
-  await sql`
-    INSERT INTO guests (name, attendance)
-    VALUES (${guest.name}, ${guest.attendance})
-  `
-}
 
 export async function POST(request: Request) {
   try {
@@ -72,14 +25,20 @@ export async function POST(request: Request) {
       )
     }
 
-    // Add new guest to the database
-    await writeGuest({
-      name: name.trim(),
-      attendance
+    // Add new guest to the database using Prisma
+    await prisma.guest.create({
+      data: {
+        name: name.trim(),
+        attendance
+      }
     })
 
     // Get all guests for email
-    const guests = await readGuests()
+    const guests = await prisma.guest.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
 
     // Create email transporter
     const transporter = nodemailer.createTransport({
@@ -101,7 +60,7 @@ export async function POST(request: Request) {
         <td style="padding: 8px; border: 1px solid #ddd;">${index + 1}</td>
         <td style="padding: 8px; border: 1px solid #ddd;">${guest.name}</td>
         <td style="padding: 8px; border: 1px solid #ddd;">${attendanceText}</td>
-        <td style="padding: 8px; border: 1px solid #ddd;">${new Date(guest.timestamp).toLocaleString('ru-RU')}</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">${new Date(guest.createdAt).toLocaleString('ru-RU')}</td>
       </tr>`
     }).join('')
 
