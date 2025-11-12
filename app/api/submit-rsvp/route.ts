@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
-import { prisma } from '@/lib/prisma'
 
 const EMAIL_USER = "batrbekk@gmail.com"
 const EMAIL_PASS = "yoja sxoy hrbq prae"
@@ -25,21 +24,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // Add new guest to the database using Prisma
-    await prisma.guest.create({
-      data: {
-        name: name.trim(),
-        attendance
-      }
-    })
-
-    // Get all guests for email
-    const guests = await prisma.guest.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
-
     // Create email transporter
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -49,22 +33,10 @@ export async function POST(request: Request) {
       }
     })
 
-    // Build guest list for email
-    const guestListHTML = guests.map((guest, index) => {
-      const attendanceText =
-        guest.attendance === 'yes' ? 'Әрине, келемін' :
-        guest.attendance === 'maybe' ? 'Жұбайыммен келемін' :
-        'Өкінішке орай, келе алмаймын'
-
-      return `<tr>
-        <td style="padding: 8px; border: 1px solid #ddd;">${index + 1}</td>
-        <td style="padding: 8px; border: 1px solid #ddd;">${guest.name}</td>
-        <td style="padding: 8px; border: 1px solid #ddd;">${attendanceText}</td>
-        <td style="padding: 8px; border: 1px solid #ddd;">${new Date(guest.createdAt).toLocaleString('ru-RU')}</td>
-      </tr>`
-    }).join('')
-
-    const totalGuests = guests.length
+    const attendanceText =
+      attendance === 'yes' ? 'Әрине, келемін' :
+      attendance === 'maybe' ? 'Жұбайыммен келемін' :
+      'Өкінішке орай, келе алмаймын'
 
     // Email content
     const mailOptions = {
@@ -72,36 +44,17 @@ export async function POST(request: Request) {
       to: RECIPIENT_EMAIL,
       subject: `Жаңа қонақ тіркелді: ${name}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
-          <h2 style="color: #654321;">Тойға келетін қонақтар тізімі</h2>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #654321;">Жаңа қонақ тіркелді</h2>
 
-          <div style="background-color: #f5e6d3; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-            <h3 style="color: #8b0000; margin-top: 0;">Жаңа қонақ:</h3>
-            <p><strong>Аты-жөні:</strong> ${name}</p>
-            <p><strong>Келу:</strong> ${
-              attendance === 'yes' ? 'Әрине, келемін' :
-              attendance === 'maybe' ? 'Жұбайыммен келемін' :
-              'Өкінішке орай, келе алмаймын'
-            }</p>
+          <div style="background-color: #f5e6d3; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+            <p style="margin: 10px 0;"><strong style="color: #654321;">Аты-жөні:</strong> ${name.trim()}</p>
+            <p style="margin: 10px 0;"><strong style="color: #654321;">Келу:</strong> ${attendanceText}</p>
+            <p style="margin: 10px 0;"><strong style="color: #654321;">Уақыты:</strong> ${new Date().toLocaleString('ru-RU')}</p>
           </div>
 
-          <h3 style="color: #654321;">Барлық қонақтар:</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-            <thead>
-              <tr style="background-color: #654321; color: white;">
-                <th style="padding: 10px; border: 1px solid #ddd;">№</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Аты-жөні</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Келу</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Уақыты</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${guestListHTML}
-            </tbody>
-          </table>
-
           <div style="background-color: #d4a574; padding: 15px; border-radius: 5px; text-align: center;">
-            <h3 style="margin: 0; color: white;">Барлығы: ${totalGuests} қонақ</h3>
+            <p style="margin: 0; color: white; font-size: 14px;">Абылайхан & Дільназ үйлену тойы</p>
           </div>
         </div>
       `
@@ -111,8 +64,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Рахмет! Сіздің жауабыңыз қабылданды.',
-      totalGuests
+      message: 'Рахмет! Сіздің жауабыңыз қабылданды.'
     })
 
   } catch (error) {
